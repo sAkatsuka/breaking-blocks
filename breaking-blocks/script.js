@@ -3,38 +3,44 @@
 // キャンバスの設定
 let canvas = document.getElementById("myCanvas");
 let ctx = canvas.getContext("2d");
-// ボールの初期設定
+
+// ゲームの初期設定
 let ballRadius = 10;
 let x = canvas.width / 2;
 let y = canvas.height - 30;
 let dx = 3;
 let dy = -2;
-// パドルの初期設定
+let currentDx = dx;
+let currentDy = dy;
 let paddleHeight = 10;
-let paddleWidth = 100;
+let paddleWidth = canvas.width / 5;
 let paddleX = (canvas.width - paddleWidth) / 2;
-// キー入力を追跡
 let rightPressed = false;
 let leftPressed = false;
-// ブロックの初期設定
-let brickRowCount = 8;
-let brickColumnCount = 6;
-let brickWidth = 47;
-let brickHeight = 15;
-let brickPadding = 7;
-let brickOffsetTop = 30;
-let brickOffsetLeft = 30;
-// 初期スコア
 let score = 0;
-// 初期ライフ
 let lives = 5;
+let currentStage = 1;
+
+// ブロックの設定
+let brickRowCount = 3;
+let brickColumnCount = 4;
+let brickWidth = (canvas.width - (brickColumnCount + 1) * 10) / brickColumnCount;
+let brickHeight = 15;
+let brickPadding = 10;
+let brickOffsetTop = 30;
+let brickOffsetLeft = 10;
+
+let bricks = [];
+initBricks();
 
 // ブロックの初期化
-let bricks = [];
-for (let c = 0; c < brickColumnCount; c++) {
-    bricks[c] = [];
-    for (let r = 0; r < brickRowCount; r++) {
-        bricks[c][r] = { x: 0, y: 0, status: 1 };
+function initBricks() {
+    bricks = [];
+    for (let c = 0; c < brickColumnCount; c++) {
+        bricks[c] = [];
+        for (let r = 0; r < brickRowCount; r++) {
+            bricks[c][r] = { x: 0, y: 0, status: 1 };
+        }
     }
 }
 
@@ -79,15 +85,55 @@ function collisionDetection() {
                 if (x > b.x && x < b.x + brickWidth && y > b.y && y < b.y + brickHeight) {
                     dy = -dy;
                     b.status = 0;
-                    score+=100;
+                    score += 100;
                     if (score == brickRowCount * brickColumnCount * 100) {
-                        alert("YOU WIN, CONGRATS!");
-                        document.location.reload();
+                        if (currentStage < 3) {
+                            if (confirm("Stage " + currentStage + " Clear! Next Stage?")) {
+                                nextStage();
+                            } else {
+                                alert("GAME OVER");
+                                document.location.reload();
+                            }
+                        } else {
+                            if (confirm("YOU WIN, CONGRATS! Play Again?")) {
+                                document.location.reload();
+                            } else {
+                                alert("GAME OVER");
+                                document.location.reload();
+                            }
+                        }
                     }
                 }
             }
         }
     }
+}
+
+// ステージを進める処理
+function nextStage() {
+    currentStage++;
+    if (currentStage === 2) {
+        lives = 4;
+        currentDx *= 1.5;
+        currentDy *= 1.5;
+        dx = currentDx;
+        dy = currentDy;
+        brickColumnCount = 5;
+        score = 0;
+    } else if (currentStage === 3) {
+        lives = 4;
+        brickRowCount = 4;
+        paddleWidth = canvas.width / 8;
+        score = 0;
+        // スピードはステージ2と同じ
+        dx = currentDx;
+        dy = currentDy;
+    }
+    brickWidth = (canvas.width - (brickColumnCount + 1) * brickPadding) / brickColumnCount;
+    initBricks();
+    x = canvas.width / 2;
+    y = canvas.height - 30;
+    paddleX = (canvas.width - paddleWidth) / 2;
 }
 
 // ボールの描画処理
@@ -113,8 +159,8 @@ function drawBricks() {
     for (let c = 0; c < brickColumnCount; c++) {
         for (let r = 0; r < brickRowCount; r++) {
             if (bricks[c][r].status == 1) {
-                let brickX = (r * (brickWidth + brickPadding)) + brickOffsetLeft;
-                let brickY = (c * (brickHeight + brickPadding)) + brickOffsetTop;
+                let brickX = (c * (brickWidth + brickPadding)) + brickOffsetLeft;
+                let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
                 bricks[c][r].x = brickX;
                 bricks[c][r].y = brickY;
                 ctx.beginPath();
@@ -171,8 +217,6 @@ function draw() {
             else {
                 x = canvas.width / 2;
                 y = canvas.height - 30;
-                dx = 3;
-                dy = -3;
                 paddleX = (canvas.width - paddleWidth) / 2;
             }
         }
@@ -191,4 +235,4 @@ function draw() {
     requestAnimationFrame(draw);
 }
 
-draw();   
+draw();
