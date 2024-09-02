@@ -20,6 +20,7 @@ let leftPressed = false;
 let score = 0;
 let lives = 5;
 let currentStage = 1;
+let isBallMoving = false; // ボールが動いているかどうかを示すフラグ
 
 // ブロックの設定
 let brickRowCount = 3;
@@ -52,9 +53,17 @@ document.addEventListener("mousemove", mouseMoveHandler, false);
 function keyDownHandler(e) {
     if (e.key == "Right" || e.key == "ArrowRight") {
         rightPressed = true;
-    }
-    else if (e.key == "Left" || e.key == "ArrowLeft") {
+    } else if (e.key == "Left" || e.key == "ArrowLeft") {
         leftPressed = true;
+    } else if (e.key == " " && !isBallMoving) { // スペースキーでボールを発射
+        isBallMoving = true;
+        // 発射角度をランダムに設定
+        let randomAngle = (Math.random() * 60 - 30) * (Math.PI / 180); // -30度から30度の範囲でランダムな角度を生成
+        let speed = Math.sqrt(dx * dx + dy * dy); // 速度の大きさを一定に保つ
+        dx = speed * Math.cos(randomAngle);
+        dy = -Math.abs(speed * Math.sin(randomAngle)); // 上方向に発射するためにdyは負の値に
+        currentDx = dx; // 次のステージで同じ速度を保つために保存
+        currentDy = dy;
     }
 }
 
@@ -62,8 +71,7 @@ function keyDownHandler(e) {
 function keyUpHandler(e) {
     if (e.key == "Right" || e.key == "ArrowRight") {
         rightPressed = false;
-    }
-    else if (e.key == "Left" || e.key == "ArrowLeft") {
+    } else if (e.key == "Left" || e.key == "ArrowLeft") {
         leftPressed = false;
     }
 }
@@ -131,9 +139,17 @@ function nextStage() {
     }
     brickWidth = (canvas.width - (brickColumnCount + 1) * brickPadding) / brickColumnCount;
     initBricks();
+    resetBall(); // ステージ進行時にボールをリセット
+}
+
+// ミスをした際のボールリセット処理
+function resetBall() {
     x = canvas.width / 2;
     y = canvas.height - 30;
+    dx = currentDx;
+    dy = currentDy;
     paddleX = (canvas.width - paddleWidth) / 2;
+    isBallMoving = false; // ボールを停止させる
 }
 
 // ボールの描画処理
@@ -197,41 +213,37 @@ function draw() {
     drawLives();
     collisionDetection();
 
-    // ボールが壁に当たった時の処理
-    if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
-        dx = -dx;
-    }
-    if (y + dy < ballRadius) {
-        dy = -dy;
-    }
-    else if (y + dy > canvas.height - ballRadius) {
-        if (x > paddleX && x < paddleX + paddleWidth) {
+    if (isBallMoving) {
+        // ボールが壁に当たった時の処理
+        if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+            dx = -dx;
+        }
+        if (y + dy < ballRadius) {
             dy = -dy;
-        }
-        else {
-            lives--;
-            if (!lives) {
-                alert("GAME OVER");
-                document.location.reload();
+        } else if (y + dy > canvas.height - ballRadius) {
+            if (x > paddleX && x < paddleX + paddleWidth) {
+                dy = -dy;
+            } else {
+                lives--;
+                if (!lives) {
+                    alert("GAME OVER");
+                    document.location.reload();
+                } else {
+                    resetBall(); // ボールをリセットする
+                }
             }
-            else {
-                x = canvas.width / 2;
-                y = canvas.height - 30;
-                paddleX = (canvas.width - paddleWidth) / 2;
-            }
         }
+        x += dx;
+        y += dy;
     }
 
     // パドルの移動処理
     if (rightPressed && paddleX < canvas.width - paddleWidth) {
         paddleX += 7;
-    }
-    else if (leftPressed && paddleX > 0) {
+    } else if (leftPressed && paddleX > 0) {
         paddleX -= 7;
     }
 
-    x += dx;
-    y += dy;
     requestAnimationFrame(draw);
 }
 
